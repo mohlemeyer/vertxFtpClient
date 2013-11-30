@@ -1,0 +1,9 @@
+{
+    "description": "Asynchronous FTP client",
+    "homepage": "https://github.com/mohlemeyer/vertxFtpClient",
+    "author": "Matthias Ohlemeyer <mohlemeyer@gmail.com>",
+    "licenses": ["MIT"],
+    "keywords": ["FTP", "FTP client", "file transfer"],
+    "main": "jslibs/jsftp/starter.js",
+    "includes": "de.actail~qunitSinon~svn"
+}
