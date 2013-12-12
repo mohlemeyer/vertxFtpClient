@@ -10,13 +10,15 @@
 var vertx = require('vertx');
 var EventEmitter = require("jslibs/jsftp/thirdPartyDeps/eventemitter2/eventemitter2").EventEmitter2;
 var responseHandler = require("./response");
-var Utils = require("./utils");
+var ListingParser = require("jslibs/jsftp/thirdPartyDeps/parseListing/parser");
 var util = require("jslibs/jsftp/thirdPartyDeps/nodejs/util/util");
+var once = require("jslibs/jsftp/thirdPartyDeps/once/once");
 
 var FTP_PORT = 21;
 var DEBUG_MODE = false;
 var TIMEOUT = 10 * 60 * 1000;
 var IDLE_TIME = 30000;
+var NOOP = function() {};
 var COMMANDS = [
   // Commands without parameters
   "abor", "pwd", "cdup", "feat", "noop", "quit", "pasv", "syst",
@@ -27,32 +29,33 @@ var COMMANDS = [
   "chmod", "size"
 ];
 
-var Cmds = {};
-COMMANDS.forEach(function(cmd) {
-  cmd = cmd.toLowerCase();
-  Cmds[cmd] = function() {
-    var callback = function() {};
-    var completeCmd = cmd;
-    if (arguments.length) {
-      var args = Array.prototype.slice.call(arguments);
+function getPasvPort(text) {
+    var RE_PASV = /([-\d]+,[-\d]+,[-\d]+,[-\d]+),([-\d]+),([-\d]+)/;
+    var match = RE_PASV.exec(text);
+    if (!match) return false;
+
+    // Array containing the passive host and the port number
+    return [match[1].replace(/,/g, "."),
+      (parseInt(match[2], 10) & 255) * 256 + (parseInt(match[3], 10) & 255)];
+}
+
+function runCmd(cmd) {
+    var callback = NOOP;
+    var args = [].slice.call(arguments);
+    var completeCmd = args.shift();
+    if (args.length) {
       if (typeof args[args.length - 1] === "function")
         callback = args.pop();
 
       completeCmd += " " + args.join(" ");
     }
     this.execute(completeCmd.trim(), callback);
-  };
-});
+}
 
-function once(fn) {
-  var returnValue, called = false;
-  return function() {
-    if (!called) {
-      called = true;
-      returnValue = fn.apply(this, arguments);
-    }
-    return returnValue;
-  };
+//Codes from 100 to 200 are FTP marks
+function isMark(code) {
+    code = parseInt(code, 10);
+    return code > 100 && code < 200;
 }
 
 var Ftp = module.exports = function(cfg) {
@@ -76,8 +79,10 @@ var Ftp = module.exports = function(cfg) {
   // Generate generic methods from parameter names. they can easily be
   // overriden if we need special behavior. they accept any parameters given,
   // it is the responsability of the user to validate the parameters.
-  var raw = this.raw = {};
-  COMMANDS.forEach(function(cmd) { raw[cmd] = Cmds[cmd].bind(this); }, this);
+  this.raw = {};
+  COMMANDS.forEach(function(cmd) {
+    this.raw[cmd] = runCmd.bind(this, cmd);
+  }, this);
 
   // this.socket = this._createSocket(this.port, this.host);
 };
@@ -102,6 +107,9 @@ Ftp.prototype._createSocket = function(port, host, firstAction) {
     
     if (!this.vertxNetClient) {
         this.vertxNetClient = vertx.createNetClient();
+    }
+    if (!firstAction) {
+        firstAction = NOOP;
     }
     this.vertxNetClient.connect(port, host, function(err, sock) {
         if (!err) {
@@ -145,7 +153,7 @@ Ftp.prototype.parseResponse = function(data) {
     return;
 
   var next = this.cmdBuffer_[0][1];
-  if (Utils.isMark(data.code) || data.code === 226) {
+  if (isMark(data.code) || data.code === 226) {
     // If we receive a Mark and it is not expected, we ignore
     // that command
     if (!next.expectsMark || next.expectsMark.marks.indexOf(data.code) === -1)
@@ -166,10 +174,10 @@ Ftp.prototype.parseResponse = function(data) {
 };
 
 /**
- * Writes a new command to the server.
+ * Sends a new command to the server.
  *
  * @param {String} command Command to write in the FTP socket
- * @returns void
+ * @return void
  */
 Ftp.prototype.send = function(command) {
   if (!command || typeof command !== "string")
@@ -201,25 +209,25 @@ Ftp.prototype.nextCmd = function() {
  * @return void
  */
 Ftp.prototype.execute = function(action, callback) {
-  if (!callback) callback = function() {};
+  if (!callback) callback = NOOP;
 
   if (this.socket) {
-    this._executeCommand(action, callback);
-  } else {
-    var self = this;
-    this.authenticated = false;
-    this._createSocket(this.port, this.host, function(err) {
-        if (!err) {
-            self._executeCommand(action, callback);
-        } else {
-            callback(err);
-        }
-      }
-    );
+    return this.runCommand(action, callback);
   }
+  
+  var self = this;
+  this.authenticated = false;
+  this._createSocket(this.port, this.host, function(err) {
+      if (!err) {
+          self.runCommand(action, callback);
+      } else {
+          callback(err);
+      }
+    }
+  );
 };
 
-Ftp.prototype._executeCommand = function(action, callback) {
+Ftp.prototype.runCommand = function(action, callback) {
   var self = this;
 
   function executeCmd() {
@@ -228,23 +236,21 @@ Ftp.prototype._executeCommand = function(action, callback) {
   }
 
   if (self.authenticated || /feat|syst|user|pass/.test(action)) {
-    executeCmd();
-  } else {
-    this.getFeatures(function() {
-      self.auth(self.user, self.pass, executeCmd);
-    });
+    return executeCmd();
   }
+  
+  this.getFeatures(function() {
+    self.auth(self.user, self.pass, executeCmd);
+  });
 };
 
 /**
  * Parse is called each time that a comand and a request are paired
  * together. That is, each time that there is a round trip of actions
- * between the client and the server. The `action` param contains an array
- * with the response from the server as a first element (text) and an array
- * with the command executed and the callback (if any) as the second
- * element.
+ * between the client and the server.
  *
- * @param action {Array} Contains server response and client command info.
+ * @param response {Object} Response from the server (contains text and code).
+ * @param command {Array} Contains the command executed and a callback (if any).
  */
 Ftp.prototype.parse = function(response, command) {
   // In FTP every response code above 399 means error in some way.
@@ -262,7 +268,7 @@ Ftp.prototype.parse = function(response, command) {
 };
 
 /**
- * Returns true if the current server has the requested feature. False otherwise.
+ * Returns true if the current server has the requested feature.
  *
  * @param {String} feature Feature to look for
  * @returns {Boolean} Whether the current server has the feature
@@ -285,10 +291,8 @@ Ftp.prototype._parseFeats = function(features) {
   });
 };
 
-
 // Below this point all the methods are action helpers for FTP that compose
 // several actions in one command
-
 Ftp.prototype.getFeatures = function(callback) {
   var self = this;
   if (!this.features)
@@ -442,10 +446,10 @@ Ftp.prototype.emitProgress = function(data) {
 Ftp.prototype.get = function(remotePath, localPath, callback) {
   var self = this;
   if (arguments.length === 2) {
-    callback = once(localPath || function() {});
+    callback = once(localPath || NOOP);
     this.getGetSocket(remotePath, callback);
   } else {
-    callback = once(callback || function() {});
+    callback = once(callback || NOOP);
     this.getGetSocket(remotePath, function(err, socket) {
       if (err) {
         callback(err);
@@ -459,18 +463,28 @@ Ftp.prototype.get = function(remotePath, localPath, callback) {
           }
           
           socket.endHandler(function () {
-              asyncFile.flush(function() {
-                  asyncFile.close();
+              asyncFile.flush(function (flushErr) {
                   socket.close();
+                  if (flushErr) {
+                      callback(flushErr);
+                  } else {
+                      asyncFile.close(function (closeErr) {
+                          if (closeErr) {
+                              callback(closeErr);
+                          } else {
+                              callback();
+                          }
+                      });
+                  }
               });
-              callback();
           });
 
           socket.exceptionHandler(function(ex) {
-              asyncFile.flush(function () {
+              try {
                   asyncFile.close();
                   socket.close();
-              });              
+              } catch (closeErr) {}
+              
               callback(ex);
           });
           
@@ -545,7 +559,7 @@ Ftp.prototype.put = function(from, to, callback) {
                           // finally respond with "226 File receive OK.".
       }
     }, callback);
-  } else {
+  } else if (typeof from === "string" || from instanceof String) {
     vertx.fileSystem.exists(from, function(exErr, exists) {
       if (exErr) {
           return callback(exErr);
@@ -553,31 +567,47 @@ Ftp.prototype.put = function(from, to, callback) {
       if (!exists)
         return callback(new Error("Local file doesn't exist."));
 
-      self.getPutSocket(to, function(err, socket) {
-        if (!err) {
-            callback.expectsMark = { marks: [226] };
-            self.cmdBuffer_.push([undefined, callback]);
-            vertx.fileSystem.open(from, function(openErr, asyncFile) {
-                if (openErr) {
-                    callback(openErr);
-                } else {                   
-                    asyncFile.endHandler(function() {
-                        asyncFile.close();
-                        socket.close();
-                    });
-                    new vertx.Pump(asyncFile, socket).start();
-                }
-            }); 
-        }
-      }, callback);
+      vertx.fileSystem.open(from, function(openErr, asyncFile) {
+          if (openErr) {
+              callback(openErr);
+          } else {
+              self.getPutSocket(to, function(sockErr, socket) {
+                  if (sockErr) {
+                      callback(sockErr);
+                  } else {
+                      asyncFile.endHandler(function() {
+                          asyncFile.close();
+                          socket.close();
+                      });
+
+                      callback.expectsMark = { marks: [226] };
+                      self.cmdBuffer_.push([undefined, callback]);
+                      new vertx.Pump(asyncFile, socket).start();
+                  }
+              }, callback);
+          }
+      });
     });
+  } else {
+      this.getPutSocket(to, function(err, socket) {
+          if (!err) {
+              callback.expectsMark = { marks: [226] };
+              self.cmdBuffer_.push([undefined, callback]);
+              from.endHandler(function () {
+                  socket.close(); // Only closing the socket makes
+                                  // the server finally respond with
+                                  // "226 Filereceive OK.".                  
+              });
+              new vertx.Pump(from, socket).start();
+          }
+      }, callback);
   }
 };
 
 Ftp.prototype.getPutSocket = function(path, callback, doneCallback) {
   if (!callback) throw new Error("A callback argument is required.");
 
-  doneCallback = once(doneCallback || function() {});
+  doneCallback = once(doneCallback || NOOP);
   var _callback = once(function(err, _socket) {
     if (err) {
       callback(err);
@@ -615,11 +645,11 @@ Ftp.prototype.getPutSocket = function(path, callback, doneCallback) {
 Ftp.prototype.getPasvSocket = function(callback) {
   var self = this;
   var timeout = this.timeout;
-  callback = once(callback || function() {});
+  callback = once(callback || NOOP);
   this.execute("pasv", function(err, res) {
     if (err) return callback(err);
 
-    var pasvRes = Utils.getPasvPort(res.text);
+    var pasvRes = getPasvPort(res.text);
     if (pasvRes === false)
       return callback(new Error("PASV: Bad host/port combination"));
 
@@ -670,8 +700,8 @@ Ftp.prototype.ls = function(filePath, callback) {
   function entriesToList(err, entries) {
     if (err) {
       return callback(err);
-    }
-    callback(null, Utils.parseEntry(entries.text || entries));
+    }    
+    ListingParser.parseFtpEntries(entries.text || entries, callback);
   }
 
   if (this.useList) {

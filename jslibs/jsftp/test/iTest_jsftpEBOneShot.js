@@ -173,6 +173,7 @@ asyncTest('should copy file from ftp server to file system', function () {
         
         if (reply.errorMsg) {
             ok(false, 'File retrieved to filesystem: ' + reply.errorMsg);
+            start();
         } else {
             vertx.fileSystem.readFile(testFileName2, function(error, buf) {
                 if (error) {

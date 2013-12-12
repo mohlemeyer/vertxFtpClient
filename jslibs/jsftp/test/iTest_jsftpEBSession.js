@@ -233,6 +233,7 @@ asyncTest('"get" should retrieve the file into a buffer', function () {
         
         if (reply.errorMsg) {
             ok(false, 'File retrieved: ' + reply.errorMsg);
+            start();
         } else {
             ok(typeof reply.code === 'number' &&
                     reply.code >=200 && reply.code < 300, 'Got "success" reply code: ' + reply.code);
@@ -255,6 +256,7 @@ asyncTest('should copy file from ftp server to file system', function () {
         
         if (reply.errorMsg) {
             ok(false, 'File retrieved to filesystem: ' + reply.errorMsg);
+            start();
         } else {
             vertx.fileSystem.readFile(testFileName2, function(error, buf) {
                 if (error) {

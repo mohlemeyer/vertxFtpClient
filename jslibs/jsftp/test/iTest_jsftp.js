@@ -16,6 +16,7 @@ var ftpClientUnauth;
 var testFileContents = 'This should go to the test file!';
 var testFileName = 'myFile.txt';
 var testFileName2 = 'myFile2.txt';
+var testFileName3 = 'myFile3.txt';
 var expectedFileSize;
 var nestedDirName = 'subDir';
 
@@ -224,6 +225,30 @@ asyncTest('copied file should have the same contents', function () {
     });
 });
 
+asyncTest('should stream file to ftp server', function () {
+    vertx.fileSystem.open(testFileName2, function(openErr, asyncFileStream) {
+        if (openErr) {
+            ok(false, 'Could not open file');
+        } else {
+            ftpClient.put(asyncFileStream, testFileName3, function (err, data) {
+                if (err) {
+                    ok(false, 'Copying file to ftp server');
+                } else {
+                    ok(data.code >=200 && data.code < 300, 'Got "success" reply code: ' + data.code);
+                }
+
+                // Cleanup file system
+                try {
+                    asyncFileStream.close();
+                    vertx.fileSystem.deleteSync(testFileName2);
+                } catch (ignore) {}
+
+                start();
+            });
+        }
+    }); 
+});
+
 asyncTest('should change working directory to parent directory', function () {
     ftpClient.raw.cdup(function (err, data) {
         if (err) {
@@ -248,6 +273,17 @@ asyncTest('should delete the test file', function () {
 
 asyncTest('should delete the file copied from the file system', function () {
     ftpClient.raw.dele(nestedDirName + '/' + testFileName, function (err, data) {
+        if (err) {
+            ok(false, 'Test file deleted');
+        } else {
+            ok(data.code >=200 && data.code < 300, 'Got "success" reply code: ' + data.code);
+        }
+        start();
+    });
+});
+
+asyncTest('should delete the streamed file', function () {
+    ftpClient.raw.dele(nestedDirName + '/' + testFileName3, function (err, data) {
         if (err) {
             ok(false, 'Test file deleted');
         } else {

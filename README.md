@@ -13,7 +13,7 @@ This module provides two different module types:
 The module can be installed by calling
 
 ```javascript
-vertx install mohlemeyer~ftpClient~{version} 
+vertx install mohlemeyer~vertxFtpClient~{version} 
 ```
 
 (See the Vert.x [module registry](http://modulereg.vertx.io) for the latest
@@ -817,11 +817,21 @@ Stores the remote file directly in the given local path.
 ```
 
 #### Ftp.put(source, remotePath, callback)
-Uploads a file to `filePath`. It accepts a string with the local path for the
-file or a Vert.x `Buffer` as a `source` parameter.
+Uploads a file to `remotePath`. It accepts three different argument types for
+the `source` parameter:
+* If the argument is a `string`, it is interpreted as a path in the local file
+system.
+* If the argument is a Vert.x `Buffer`, the contents of the buffer will be
+stored in the file denoted by `remotePath`.
+* If the argument is neither a `string` nor a Vert.x `Buffer` it will be used
+as a Vert.x `Stream`, i.e. it will be connected to the FTP-Server, then
+everything will be read from the `Stream` and directly written to the remote
+file until the end of the `Stream` is reached. __NOTE that for this purpose a
+new end handler will be attached to the `Stream`, overriding any previously 
+attached end handler__.
 
 ```javascript
-ftp.put(buffer, 'path/to/remote/file.txt', function(hadError) {
+ftp.put(source, 'path/to/remote/file.txt', function(hadError) {
   if (!hadError)
     console.log("File transferred successfully!");
 });
