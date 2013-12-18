@@ -7,6 +7,9 @@
  *
  * Copyright (c) 2013 Matthias Ohlemeyer
  */
+require('jslibs/qunit/qunit/qunitContext')(this);
+var vertx = require('vertx');
+
 var container = require('vertx/container');
 
 require("jslibs/jsftp/lib/jsftpEB");
