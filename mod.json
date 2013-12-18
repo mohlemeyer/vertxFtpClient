@@ -5,5 +5,5 @@
     "licenses": ["MIT"],
     "keywords": ["FTP", "FTP client", "file transfer"],
     "main": "jslibs/jsftp/starter.js",
-    "includes": "de.actail~qunitSinon~svn"
+    "includes": "mohlemeyer~vertxQunitSinon~0.0.3"
 }
