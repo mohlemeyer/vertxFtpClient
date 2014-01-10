@@ -8,6 +8,7 @@
  */
 require('jslibs/qunit/qunit/qunitContext')(this);
 var vertx = require('vertx');
+var console = require('vertx/console');
 
 var container = require('vertx/container');
 var Ftp = require("jslibs/jsftp/lib/jsftp");

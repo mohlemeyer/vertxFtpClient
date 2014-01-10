@@ -23,14 +23,14 @@ var nestedDirName = 'subDir';
 QUnit.module('a-ftpClient.EventBus.OneShotCommands');
 //==========================================================================
 
+
 asyncTest('should create test directory', function () {
     var cmd = {
             cmd: 'mkd',
             args: [container.config.testDir]
     };
 
-    vertx.eventBus.send(container.config.address, JSON.stringify(cmd), function (replyJSON) {
-        var reply = JSON.parse(replyJSON);
+    vertx.eventBus.send(container.config.address, cmd, function (reply) {
         if (reply.errorMsg) {
             ok(false, 'Error creating test directory: ' + reply.errorMsg);
         } else {
@@ -52,9 +52,7 @@ asyncTest('should create file from buffer', function () {
     cmd.args.push([fileContentsBase64]);
     cmd.args.push(container.config.testDir + '/' + testFileName);
     
-    vertx.eventBus.send(container.config.address, JSON.stringify(cmd), function (replyJSON) {
-        var reply = JSON.parse(replyJSON);
-        
+    vertx.eventBus.send(container.config.address, cmd, function (reply) {
         if (reply.errorMsg) {
             ok(false, 'File created: ' + reply.errorMsg);
         } else {
@@ -71,14 +69,12 @@ asyncTest('should list the file', function () {
             args: [container.config.testDir]
     };
     
-    vertx.eventBus.send(container.config.address, JSON.stringify(cmd), function (replyJSON) {
-        var reply = JSON.parse(replyJSON);
-        
+    vertx.eventBus.send(container.config.address, cmd, function (reply) {
         if (reply.errorMsg) {
             ok(false, 'File listing with ls: ' + reply.errorMsg);
         } else {
-            strictEqual(reply.length, 1, 'one entry in file list');
-            strictEqual(reply[0].name, testFileName, 'correct entry in file list');
+            strictEqual(reply.fileList.length, 1, 'one entry in file list');
+            strictEqual(reply.fileList[0].name, testFileName, 'correct entry in file list');
         }
         start();
     });
@@ -91,9 +87,7 @@ asyncTest('should rename the file', function () {
                    container.config.testDir + '/' + testFileName2]
     };
 
-    vertx.eventBus.send(container.config.address, JSON.stringify(cmd), function (replyJSON) {
-        var reply = JSON.parse(replyJSON);
-        
+    vertx.eventBus.send(container.config.address, cmd, function (reply) {
         if (reply.errorMsg) {
             ok(false, 'File renamed: ' + reply.errorMsg);
         } else {
@@ -110,8 +104,7 @@ asyncTest('should create a nested directory', function () {
             args: [container.config.testDir + '/' + nestedDirName]
     };
 
-    vertx.eventBus.send(container.config.address, JSON.stringify(cmd), function (replyJSON) {
-        var reply = JSON.parse(replyJSON);
+    vertx.eventBus.send(container.config.address, cmd, function (reply) {
         if (reply.errorMsg) {
             ok(false, 'Nested directory created: ' + reply.errorMsg);
         } else {
@@ -129,9 +122,7 @@ asyncTest('should move the file', function () {
                    container.config.testDir + '/' + nestedDirName + '/' + testFileName2]
     };
 
-    vertx.eventBus.send(container.config.address, JSON.stringify(cmd), function (replyJSON) {
-        var reply = JSON.parse(replyJSON);
-        
+    vertx.eventBus.send(container.config.address, cmd, function (reply) {
         if (reply.errorMsg) {
             ok(false, 'File moved: ' + reply.errorMsg);
         } else {
@@ -148,8 +139,7 @@ asyncTest('"get" should retrieve the file into a buffer', function () {
             args: [container.config.testDir + '/' + nestedDirName + '/' + testFileName2]
     };
     
-    vertx.eventBus.send(container.config.address, JSON.stringify(cmd), function (replyJSON) {
-        var reply = JSON.parse(replyJSON);
+    vertx.eventBus.send(container.config.address, cmd, function (reply) {
         var dataBuf;
         
         if (reply.errorMsg) {
@@ -171,9 +161,7 @@ asyncTest('should copy file from ftp server to file system', function () {
                    testFileName2]
     };
 
-    vertx.eventBus.send(container.config.address, JSON.stringify(cmd), function (replyJSON) {
-        var reply = JSON.parse(replyJSON);
-        
+    vertx.eventBus.send(container.config.address, cmd, function (reply) {
         if (reply.errorMsg) {
             ok(false, 'File retrieved to filesystem: ' + reply.errorMsg);
             start();
@@ -198,9 +186,7 @@ asyncTest('should copy file from file system to ftp server', function () {
     
     };
     
-    vertx.eventBus.send(container.config.address, JSON.stringify(cmd), function (replyJSON) {
-        var reply = JSON.parse(replyJSON);
-        
+    vertx.eventBus.send(container.config.address, cmd, function (reply) {
         if (reply.errorMsg) {
             ok(false, 'Copied file to ftp server: ' + reply.errorMsg);
         } else {
@@ -223,8 +209,7 @@ asyncTest('copied file should have the same contents', function () {
             args: [container.config.testDir + '/' + nestedDirName + '/' + testFileName]
     };
     
-    vertx.eventBus.send(container.config.address, JSON.stringify(cmd), function (replyJSON) {
-        var reply = JSON.parse(replyJSON);
+    vertx.eventBus.send(container.config.address, cmd, function (reply) {
         var dataBuf;
         
         if (reply.errorMsg) {
@@ -245,9 +230,7 @@ asyncTest('should delete the test file', function () {
             args: [container.config.testDir + '/' + nestedDirName + '/' + testFileName2]
     };
 
-    vertx.eventBus.send(container.config.address, JSON.stringify(cmd), function (replyJSON) {
-        var reply = JSON.parse(replyJSON);
-        
+    vertx.eventBus.send(container.config.address, cmd, function (reply) {
         if (reply.errorMsg) {
             ok(false, 'Test file  2 deleted: ' + reply.errorMsg);
         } else {
@@ -264,9 +247,7 @@ asyncTest('should delete the file copied from the file system', function () {
             args: [container.config.testDir + '/' + nestedDirName + '/' + testFileName]
     };
 
-    vertx.eventBus.send(container.config.address, JSON.stringify(cmd), function (replyJSON) {
-        var reply = JSON.parse(replyJSON);
-        
+    vertx.eventBus.send(container.config.address, cmd, function (reply) {
         if (reply.errorMsg) {
             ok(false, 'Test file deleted: ' + reply.errorMsg);
         } else {
@@ -283,9 +264,7 @@ asyncTest('should delete the nested directory', function () {
             args: [container.config.testDir + '/' + nestedDirName]
     };
 
-    vertx.eventBus.send(container.config.address, JSON.stringify(cmd), function (replyJSON) {
-        var reply = JSON.parse(replyJSON);
-        
+    vertx.eventBus.send(container.config.address, cmd, function (reply) {
         if (reply.errorMsg) {
             ok(false, 'Nested directory deleted: ' + reply.errorMsg);
         } else {
@@ -302,9 +281,7 @@ asyncTest('should delete the test directory', function () {
             args: [container.config.testDir]
     };
 
-    vertx.eventBus.send(container.config.address, JSON.stringify(cmd), function (replyJSON) {
-        var reply = JSON.parse(replyJSON);
-        
+    vertx.eventBus.send(container.config.address, cmd, function (reply) {
         if (reply.errorMsg) {
             ok(false, 'Test directory deleted: ' + reply.errorMsg);
         } else {

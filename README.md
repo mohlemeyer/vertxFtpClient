@@ -114,8 +114,7 @@ var command = {
     args: ['dirname']
 };
 
-vertx.eventBus.send(<EB address>, JSON.stringify(command), function (replyJSON) {
-    var reply = JSON.parse(replyJSON);
+vertx.eventBus.send(<EB address>, command, function (reply) {
     if (reply.errorMsg) {
         // Handle error
         ...
@@ -193,8 +192,7 @@ var command = {
         timeout: 2500
 };
 
-vertx.eventBus.send(<EB address>, JSON.stringify(command), function (replyJSON) {
-    var reply = JSON.parse(replyJSON);
+vertx.eventBus.send(<EB address>, command, function (reply) {
     if (reply.errorMsg) {
         // Handle connection/authentication/timeout error
         ...
@@ -219,8 +217,7 @@ var command = {
     sessionId: <FTP session id from "connect">
 };
 
-vertx.eventBus.send(<EB address>, JSON.stringify(command), function (replyJSON) {
-    var reply = JSON.parse(replyJSON);
+vertx.eventBus.send(<EB address>, command, function (reply) {
     if (reply.errorMsg) {
         // Handle error
         ...
@@ -242,8 +239,7 @@ var command = {
         sessionId: <FTP session id from "connect">
 };
 
-vertx.eventBus.send(<EB address>, JSON.stringify(command), function (replyJSON) {
-    var reply = JSON.parse(replyJSON);
+vertx.eventBus.send(<EB address>, command, function (reply) {
     if (reply.errorMsg) {
         // Handle "disconnect error"
         ...
@@ -305,9 +301,9 @@ required for more complex operations.
 #### ls
  
 The `ls` command takes a directory name as a single argument. The reply handler
-receives an array of file data objects in return with properties like `name`,
-`type`, `time`, `size` plus owner and permission information. Here is a
-JavaScript example:
+receives an object with an array of file data objects in return with properties
+like `name`, `type`, `time`, `size` plus owner and permission information. Here
+is a JavaScript example:
 
 ```javascript
 var command = {
@@ -315,16 +311,14 @@ var command = {
         args: ['.']
 };
     
-vertx.eventBus.send(<EB address>, JSON.stringify(command), function (replyJSON) {
-    var reply = JSON.parse(replyJSON);
-    
+vertx.eventBus.send(<EB address>, command, function (reply) {
     if (reply.errorMsg) {
         // Handle error
         ...
     } else {
-        // reply.length corresponds to the number of file entries;
-        // reply[0].name contains the name of the first file entry;
-        // reply[1].size contains the size of the second file entry;
+        // reply.fileList.length corresponds to the number of file entries;
+        // reply.fileList[0].name contains the name of the first file entry;
+        // reply.fileList[1].size contains the size of the second file entry;
         ...
     }
 });
@@ -356,8 +350,7 @@ var command = {
         args: [<Path to file to be retrieved>]
 };
     
-vertx.eventBus.send(<EB address>, JSON.stringify(command), function (replyJSON) {
-    var reply = JSON.parse(replyJSON);
+vertx.eventBus.send(<EB address>, command, function (reply) {
     var dataBuf;    // Vert.x Buffer with file contents
     
     if (reply.errorMsg) {
@@ -397,9 +390,7 @@ var fileContentsBase64 = Packages.javax.xml.bind.DatatypeConverter.printBase64Bi
 command.args.push([fileContentsBase64]);
 command.args.push(<Path to file on the server>);
     
-vertx.eventBus.send(<EB address>, JSON.stringify(command), function (replyJSON) {
-    var reply = JSON.parse(replyJSON);
-        
+vertx.eventBus.send(<EB address>, command, function (reply) {
     if (reply.errorMsg) {
         // Handle error
         ...
@@ -424,9 +415,7 @@ var command = {
         args: [<Path to "from" file name>, <Path to "to" file name>]
 };
 
-vertx.eventBus.send(<EB address>, JSON.stringify(command), function (replyJSON) {
-    var reply = JSON.parse(replyJSON);
-    
+vertx.eventBus.send(<EB address>, command, function (reply) {
     if (reply.errorMsg) {
         // Handle error
         ...

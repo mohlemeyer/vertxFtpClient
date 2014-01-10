@@ -76,8 +76,8 @@ asyncTest('should run all integration tests', function () {
     ).
     then(
             function (reply) {
-                strictEqual(reply.length, 1, 'one entry in file list');
-                strictEqual(reply[0].name, testFileName, 'correct entry in file list');
+                strictEqual(reply.fileList.length, 1, 'one entry in file list');
+                strictEqual(reply.fileList[0].name, testFileName, 'correct entry in file list');
                 return cl.rename(testFileName, testFileName2);
             }
     ).

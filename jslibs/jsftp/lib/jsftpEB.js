@@ -45,59 +45,50 @@ if (!container.config.address) {
     // Event Bus Connection
     //======================
     vertx.eventBus.registerHandler(container.config.address,
-            function (ftpCmdJSON, replier) {
-        var ftpCmd;             // Parsed send message data
+            function (ftpCmd, replier) {
         var ftpClient;          // FTP client
         var svrRespTimerId;     // Timer for server response
         var ftpClientConfig;    // Client configuration (server, authentication)
         
+        // "ftpCmd" is an object with the following properties:
+        // "cmd": ftp command; either a ftp client command like ls or get
+        //        or a raw command like pwd
+        // "args": [array of strings] arguments for the command; for "put"
+        //         from buffer, the buffer content is kept as a base64
+        //         encoded string in an array with a single entry
+        // "sessionId": Id for the ftp session keeping the TCP connection;
+        //              if empty, a "one-shot" command will be issued
+        // "timeout": Max time in ms for the server to respond
+        //
+        // The "raw" flag will be added depending on the given command:
+        // "raw": boolean indicating wether to interpret "cmd" as a client
+        //        command or a raw command
+            
         // Initialize client configuration for the current command
         ftpClientConfig = ftpClModConfig;
 
-        try {
-            ftpCmd = JSON.parse(ftpCmdJSON);
-            // "ftpCmd" is an object with the following properties:
-            // "cmd": ftp command; either a ftp client command like ls or get
-            //        or a raw command like pwd
-            // "args": [array of strings] arguments for the command; for "put"
-            //         from buffer, the buffer content is kept as a base64
-            //         encoded string in an array with a single entry
-            // "sessionId": Id for the ftp session keeping the TCP connection;
-            //              if empty, a "one-shot" command will be issued
-            // "timeout": Max time in ms for the server to respond
-            //
-            // The "raw" flag will be added depending on the given command:
-            // "raw": boolean indicating wether to interpret "cmd" as a client
-            //        command or a raw command
-        } catch (parseErr) {
-            replier(JSON.stringify({
-                errorMsg: 'JSON parse error: ' + parseErr.toString()
-            }));
-            return;
-        }
-            
         // Make sure a command is specified
         if (typeof ftpCmd.cmd !== 'string' || ftpCmd.cmd.length === 0) {
-            replier(JSON.stringify({
+            replier({
                 errorMsg: 'No command specified.'
-            }));
+            });
             return;
         }
 
         // Make sure, "args" is an array if given
         if (ftpCmd.args && !Array.isArray(ftpCmd.args)) {
-            replier(JSON.stringify({
+            replier({
                 errorMsg: 'Arguments not specified as an array.'
-            }));
+            });
             return;            
         }
         
         // Disallow "auth" and "quit" commands; "connect" and "disconnect"
         // have to be used instead
         if (ftpCmd.cmd === 'auth' || ftpCmd.cmd === 'quit') {
-            replier(JSON.stringify({
+            replier({
                 errorMsg: 'Invalid command: ' + ftpCmd.cmd
-            }));
+            });
             return;                    
         }
         
@@ -105,16 +96,16 @@ if (!container.config.address) {
             // Check if the session id is valid
             ftpClient = sessions[ftpCmd.sessionId];
             if (!ftpClient) {
-                replier(JSON.stringify({
+                replier({
                     errorMsg: 'Invalid session id: ' + ftpCmd.sessionId
-                }));
+                });
                 return;
             }
             if (ftpCmd.cmd === 'connect') {
-                replier(JSON.stringify({
+                replier({
                     errorMsg: '"connect" not allowed for existing ' +
                     'ftp session'
-                }));
+                });
                 return;                    
             }
             if (ftpCmd.cmd === 'disconnect') {
@@ -130,9 +121,9 @@ if (!container.config.address) {
                 // Ensure max no of sessions is not exceeded
                 if (container.config.maxSessions &&
                         noOfSessions >= container.config.maxSessions) {
-                    replier(JSON.stringify({
+                    replier({
                         errorMsg: 'Maximum number of sessions reached'
-                    }));
+                    });
                     return;
                 }
                 // Check if connection configuration is given as an
@@ -153,10 +144,10 @@ if (!container.config.address) {
             }
             
             if (ftpCmd.cmd === 'disconnect') {
-                replier(JSON.stringify({
+                replier({
                     errorMsg: '"disconnect" not allowed without ' +
                     'ftp session'
-                }));
+                });
                 return;                    
             }
 
@@ -166,9 +157,9 @@ if (!container.config.address) {
                     noOfSessions--;
                 }
                 this.destroy();
-                replier(JSON.stringify({
+                replier({
                     errorMsg: errorData.toString()
-                }));
+                });
                 return;
             });
 
@@ -217,9 +208,9 @@ if (!container.config.address) {
                     // No session id => This is a "one-shot" command
                     ftpClient.destroy();
                 }
-                replier(JSON.stringify({
+                replier({
                     errorMsg: 'Unknown raw command.'
-                }));
+                });
                 return;                    
             }                     
         } else {
@@ -229,10 +220,10 @@ if (!container.config.address) {
                     // No session id => This is a "one-shot" command
                     ftpClient.destroy();
                 }
-                replier(JSON.stringify({
+                replier({
                     errorMsg: 'Unknown ftp client command: ' +
                         ftpCmd.cmd
-                }));
+                });
                 return;
             }
 
@@ -241,18 +232,18 @@ if (!container.config.address) {
                 if (ftpClient._sessionId) {
                     // "keepAlive" is a command without callback
                     ftpClient.keepAlive();
-                    replier(JSON.stringify({
+                    replier({
                         code: 299,
                         text: 'Keep alive set'
-                    }));
+                    });
                     return;
                 } else {
                     // "keepAlive" not allowed as one-shot command
                     ftpClient.destroy();
-                    replier(JSON.stringify({
+                    replier({
                         errorMsg: 'Invalid "one-shot" command: ' +
                             ftpCmd.cmd
-                    }));
+                    });
                     return;
                 }
             }
@@ -292,9 +283,9 @@ if (!container.config.address) {
                         buffer.appendBuffer(buf);
                     });
                     socket.exceptionHandler(function (error) {
-                        replier(JSON.stringify({
+                        replier({
                             errorMsg: error.toString()
-                        }));
+                        });
                         if (!ftpClient._sessionId) {
                             ftpClient.destroy();
                         }
@@ -302,12 +293,12 @@ if (!container.config.address) {
                     
                     // Success case: Reply with a Base64 encoded buffer
                     socket.endHandler(function() {
-                        replier(JSON.stringify({
+                        replier({
                             code: 299,
                             text: 'Retrieved file successfully',
                             data: DatatypeConverter.
                                 printBase64Binary(buffer.getBytes())
-                        }));
+                        });
 
                         socket.close();
                         if (!ftpClient._sessionId) {
@@ -320,9 +311,9 @@ if (!container.config.address) {
                     socket.resume();
                 } else {
                     // "get" returned with an error
-                    replier(JSON.stringify({
+                    replier({
                         errorMsg: err.toString()
-                    }));
+                    });
                     if (!ftpClient._sessionId) {
                         // In case of a one-shot command: Send "quit"
                         // and close the connection
@@ -335,6 +326,8 @@ if (!container.config.address) {
             // Handle all other cmd cases, except for "quit"
             // (raw and not-raw commands)
             ftpCmd.args.push(function (err, res) {
+                var preparedResult;
+                
                 if (svrRespTimerId) {
                     vertx.cancelTimer(svrRespTimerId);
                     svrRespTimerId = undefined;
@@ -346,12 +339,26 @@ if (!container.config.address) {
                     if (ftpCmd.cmd === 'auth' && ftpClient._sessionId) {
                         res.sessionId = ftpClient._sessionId;
                     }
-                    // Be prepared for "res" being undefined, e.g.
-                    // for the "get" command
-                    replier(JSON.stringify(res || {
-                        code: 299,
-                        text: 'Command successfully executed'
-                    }));
+                    
+                    if (!res) {
+                        // Be prepared for "res" being undefined, e.g.
+                        // for the "get" command
+                        preparedResult = {
+                                code: 299,
+                                text: 'Command successfully executed'
+                            };
+                    } else if (ftpCmd.cmd === 'ls') {
+                        // In case of the "ls" command the response is returned
+                        // as an array. The Vert.x JSON serialization can
+                        // currently (2.1M2) not cope with top-level arrays
+                        // (arrays in objects are ok). Because of this we stuff
+                        // "res" into an object.
+                        preparedResult = { fileList: res };
+                    } else {
+                        // Otherwise we can simple return the response
+                        preparedResult = res;
+                    }
+                    replier(preparedResult);
                 } else {
                     // Clean up if "auth" not successfull
                     if (ftpCmd.cmd === 'auth' && ftpClient._sessionId) {
@@ -359,9 +366,9 @@ if (!container.config.address) {
                         noOfSessions--;
                         ftpClient.destroy();
                     }
-                    replier(JSON.stringify({
+                    replier({
                         errorMsg: err.toString()
-                    }));
+                    });
                 }
                 if (!ftpClient._sessionId) {
                     // In case of a one-shot command: Send "quit"
@@ -377,10 +384,10 @@ if (!container.config.address) {
                 if (!ftpClient._sessionId) {
                     ftpClient.destroy();
                 }
-                replier(JSON.stringify({
+                replier({
                     errorMsg: 'Timeout: Server took longer than '+
                         ftpCmd.timeout + ' ms to respond.'
-                }));                    
+                });                    
             });
         }
         
@@ -390,10 +397,10 @@ if (!container.config.address) {
                 // Don't wait for a server reply on "quit"
                 ftpClient.raw.quit();
                 ftpClient.destroy();
-                replier(JSON.stringify({
+                replier({
                     code: 299,
                     text: 'Sent "quit" to the server'
-                }));
+                });
             } else {
                 ftpClient.raw[ftpCmd.cmd].apply(ftpClient, ftpCmd.args);
             }

@@ -30,8 +30,7 @@ asyncTest('should connect to the ftp server', function () {
             cmd: 'connect'
     };
 
-    vertx.eventBus.send(container.config.address, JSON.stringify(cmd), function (replyJSON) {
-        var reply = JSON.parse(replyJSON);
+    vertx.eventBus.send(container.config.address, cmd, function (reply) {
         if (reply.errorMsg) {
             ok(false, 'Error connecting: ' + reply.errorMsg);
         } else {
@@ -50,8 +49,7 @@ asyncTest('should create test directory', function () {
             sessionId: ftpSessionId
     };
 
-    vertx.eventBus.send(container.config.address, JSON.stringify(cmd), function (replyJSON) {
-        var reply = JSON.parse(replyJSON);
+    vertx.eventBus.send(container.config.address, cmd, function (reply) {
         if (reply.errorMsg) {
             ok(false, 'Error creating test directory: ' + reply.errorMsg);
         } else {
@@ -69,8 +67,7 @@ asyncTest('should change working directory', function () {
             sessionId: ftpSessionId
     };
 
-    vertx.eventBus.send(container.config.address, JSON.stringify(cmd), function (replyJSON) {
-        var reply = JSON.parse(replyJSON);
+    vertx.eventBus.send(container.config.address, cmd, function (reply) {
         if (reply.errorMsg) {
             ok(false, 'Changed working directory: ' + reply.errorMsg);
         } else {
@@ -87,8 +84,7 @@ asyncTest('should "print" the current working directory', function () {
             sessionId: ftpSessionId
     };
 
-    vertx.eventBus.send(container.config.address, JSON.stringify(cmd), function (replyJSON) {
-        var reply = JSON.parse(replyJSON);
+    vertx.eventBus.send(container.config.address, cmd, function (reply) {
         if (reply.errorMsg) {
             ok(false, '"Printed" working directory: ' + reply.errorMsg);
         } else {
@@ -112,9 +108,7 @@ asyncTest('should create file from buffer', function () {
     cmd.args.push([fileContentsBase64]);
     cmd.args.push(testFileName);
     
-    vertx.eventBus.send(container.config.address, JSON.stringify(cmd), function (replyJSON) {
-        var reply = JSON.parse(replyJSON);
-        
+    vertx.eventBus.send(container.config.address, cmd, function (reply) {        
         if (reply.errorMsg) {
             ok(false, 'File created: ' + reply.errorMsg);
         } else {
@@ -132,14 +126,12 @@ asyncTest('should list the file', function () {
             sessionId: ftpSessionId
     };
     
-    vertx.eventBus.send(container.config.address, JSON.stringify(cmd), function (replyJSON) {
-        var reply = JSON.parse(replyJSON);
-        
+    vertx.eventBus.send(container.config.address, cmd, function (reply) {
         if (reply.errorMsg) {
             ok(false, 'File listing with ls: ' + reply.errorMsg);
         } else {
-            strictEqual(reply.length, 1, 'one entry in file list');
-            strictEqual(reply[0].name, testFileName, 'correct entry in file list');
+            strictEqual(reply.fileList.length, 1, 'one entry in file list');
+            strictEqual(reply.fileList[0].name, testFileName, 'correct entry in file list');
         }
         start();
     });
@@ -152,9 +144,7 @@ asyncTest('should rename the file', function () {
             sessionId: ftpSessionId
     };
 
-    vertx.eventBus.send(container.config.address, JSON.stringify(cmd), function (replyJSON) {
-        var reply = JSON.parse(replyJSON);
-        
+    vertx.eventBus.send(container.config.address, cmd, function (reply) {
         if (reply.errorMsg) {
             ok(false, 'File renamed: ' + reply.errorMsg);
         } else {
@@ -172,8 +162,7 @@ asyncTest('should create a nested directory', function () {
             sessionId: ftpSessionId
     };
 
-    vertx.eventBus.send(container.config.address, JSON.stringify(cmd), function (replyJSON) {
-        var reply = JSON.parse(replyJSON);
+    vertx.eventBus.send(container.config.address, cmd, function (reply) {
         if (reply.errorMsg) {
             ok(false, 'Nested directory created: ' + reply.errorMsg);
         } else {
@@ -191,9 +180,7 @@ asyncTest('should move the file', function () {
             sessionId: ftpSessionId
     };
 
-    vertx.eventBus.send(container.config.address, JSON.stringify(cmd), function (replyJSON) {
-        var reply = JSON.parse(replyJSON);
-        
+    vertx.eventBus.send(container.config.address, cmd, function (reply) {
         if (reply.errorMsg) {
             ok(false, 'File moved: ' + reply.errorMsg);
         } else {
@@ -211,8 +198,7 @@ asyncTest('should change working directory to nested directory', function () {
             sessionId: ftpSessionId
     };
 
-    vertx.eventBus.send(container.config.address, JSON.stringify(cmd), function (replyJSON) {
-        var reply = JSON.parse(replyJSON);
+    vertx.eventBus.send(container.config.address, cmd, function (reply) {
         if (reply.errorMsg) {
             ok(false, 'Changed working directory: ' + reply.errorMsg);
         } else {
@@ -230,8 +216,7 @@ asyncTest('"get" should retrieve the file into a buffer', function () {
             sessionId: ftpSessionId
     };
     
-    vertx.eventBus.send(container.config.address, JSON.stringify(cmd), function (replyJSON) {
-        var reply = JSON.parse(replyJSON);
+    vertx.eventBus.send(container.config.address, cmd, function (reply) {
         var dataBuf;
         
         if (reply.errorMsg) {
@@ -254,9 +239,7 @@ asyncTest('should copy file from ftp server to file system', function () {
             sessionId: ftpSessionId
     };
 
-    vertx.eventBus.send(container.config.address, JSON.stringify(cmd), function (replyJSON) {
-        var reply = JSON.parse(replyJSON);
-        
+    vertx.eventBus.send(container.config.address, cmd, function (reply) {
         if (reply.errorMsg) {
             ok(false, 'File retrieved to filesystem: ' + reply.errorMsg);
             start();
@@ -281,9 +264,7 @@ asyncTest('should copy file from file system to ftp server', function () {
     
     };
     
-    vertx.eventBus.send(container.config.address, JSON.stringify(cmd), function (replyJSON) {
-        var reply = JSON.parse(replyJSON);
-        
+    vertx.eventBus.send(container.config.address, cmd, function (reply) {
         if (reply.errorMsg) {
             ok(false, 'Copied file to ftp server: ' + reply.errorMsg);
         } else {
@@ -307,8 +288,7 @@ asyncTest('copied file should have the same contents', function () {
             sessionId: ftpSessionId
     };
     
-    vertx.eventBus.send(container.config.address, JSON.stringify(cmd), function (replyJSON) {
-        var reply = JSON.parse(replyJSON);
+    vertx.eventBus.send(container.config.address, cmd, function (reply) {
         var dataBuf;
         
         if (reply.errorMsg) {
@@ -329,8 +309,7 @@ asyncTest('should change working directory to parent directory', function () {
             sessionId: ftpSessionId
     };
 
-    vertx.eventBus.send(container.config.address, JSON.stringify(cmd), function (replyJSON) {
-        var reply = JSON.parse(replyJSON);
+    vertx.eventBus.send(container.config.address, cmd, function (reply) {
         if (reply.errorMsg) {
             ok(false, 'Changed to parent directory: ' + reply.errorMsg);
         } else {
@@ -349,9 +328,7 @@ asyncTest('should delete the test file', function () {
             sessionId: ftpSessionId
     };
 
-    vertx.eventBus.send(container.config.address, JSON.stringify(cmd), function (replyJSON) {
-        var reply = JSON.parse(replyJSON);
-        
+    vertx.eventBus.send(container.config.address, cmd, function (reply) {
         if (reply.errorMsg) {
             ok(false, 'Test file  2 deleted: ' + reply.errorMsg);
         } else {
@@ -369,9 +346,7 @@ asyncTest('should delete the file copied from the file system', function () {
             sessionId: ftpSessionId
     };
 
-    vertx.eventBus.send(container.config.address, JSON.stringify(cmd), function (replyJSON) {
-        var reply = JSON.parse(replyJSON);
-        
+    vertx.eventBus.send(container.config.address, cmd, function (reply) {
         if (reply.errorMsg) {
             ok(false, 'Test file deleted: ' + reply.errorMsg);
         } else {
@@ -389,9 +364,7 @@ asyncTest('should delete the nested directory', function () {
             sessionId: ftpSessionId
     };
 
-    vertx.eventBus.send(container.config.address, JSON.stringify(cmd), function (replyJSON) {
-        var reply = JSON.parse(replyJSON);
-        
+    vertx.eventBus.send(container.config.address, cmd, function (reply) {
         if (reply.errorMsg) {
             ok(false, 'Nested directory deleted: ' + reply.errorMsg);
         } else {
@@ -409,9 +382,7 @@ asyncTest('should delete the test directory', function () {
             sessionId: ftpSessionId
     };
 
-    vertx.eventBus.send(container.config.address, JSON.stringify(cmd), function (replyJSON) {
-        var reply = JSON.parse(replyJSON);
-        
+    vertx.eventBus.send(container.config.address, cmd, function (reply) {
         if (reply.errorMsg) {
             ok(false, 'Test directory deleted: ' + reply.errorMsg);
         } else {
@@ -428,8 +399,7 @@ asyncTest('should disconnect from the ftp server', function () {
             sessionId: ftpSessionId
     };
 
-    vertx.eventBus.send(container.config.address, JSON.stringify(cmd), function (replyJSON) {
-        var reply = JSON.parse(replyJSON);
+    vertx.eventBus.send(container.config.address, cmd, function (reply) {
         if (reply.errorMsg) {
             ok(false, 'Error disconnecting: ' + reply.errorMsg);
         } else {

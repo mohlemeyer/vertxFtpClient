@@ -99,9 +99,8 @@ FTP_CLIENT_COMMANDS.forEach(function (command) {
         }
         
         // Send the command on the event bus
-        vertx.eventBus.send(self.ebAddress, JSON.stringify(ebCmd),
-                function (replyJSON) {
-            var reply = JSON.parse(replyJSON);
+        vertx.eventBus.send(self.ebAddress, ebCmd,
+                function (reply) {
             if (reply.errorMsg) {
                 deferred.reject(reply.errorMsg);
             } else {
