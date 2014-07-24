@@ -38,14 +38,14 @@ configuration in JSON format:
 ```
 
 The module config needs to specify that tests should be run (`"test": true`)
-and and the event bus address `ftpCl` to use for tests involving module calls
+and the event bus address `ftpCl` to use for tests involving module calls
 via the event bus. Apart from that you can specify host and authentication data
-and you have to provide the name of a temporary remote directory , which will
+and you have to provide the name of a temporary remote directory, which will
 be created and deleted by some of the tests. __Make sure to specify a
 directory name which does not exist on the test ftp server!__ Otherwise the
 tests will fail and the directory might be deleted.
 
-The testsuite can then be started by calling
+The test suite can then be started by calling
 
 ```javascript
 vertx runmod mohlemeyer~ftpClient~{version} -conf {Path_to_module_configuration}
@@ -62,8 +62,7 @@ in two separate _modes_:
 * _"One-shot"_-commands send a single FTP command to the server without any
 context. All details of authentication and session management are handled by
 the client.
-* _Session_-commands expose an FTP session the the programmer. The session has
-to be explicitly set up and discarded.
+* _Session_-commands expose an FTP session to the programmer. The session has to be explicitly set up and discarded.
 
 ### Configuration
 
@@ -162,17 +161,17 @@ The use of "one-shot" commands should be considered if your application makes
 sparse, infrequent calls to a single FTP server. Since for each command a server
 connection is established and discarded after command execution sending multiple
 subsequent commands is inefficient and slow. In this case you should rather use
-FTP sessions. The advantage of "one-shot" commands lies in their easy of
-use: After starting up the module single FTP commands can be executed from
-anywhere in your code with minimal set up an tear down effort.
+FTP sessions. The advantage of "one-shot" commands lies in their ease of
+use: After starting up the module, single FTP commands can be executed from
+anywhere in your code with minimal set up and tear down effort.
 
-### Working with FTP-Sessions
+### Working with FTP Sessions
 
 Managing FTP sessions takes a little more effort on behalf of the programmer,
 although the overall code structure is the same as for "one-shot" commands.
 
 The first step to create a session is to send the `connect` command on the
-event bus. Without any arguments host and authentication data is taken from the
+event bus. Without any arguments, host and authentication data is taken from the
 module configuration. But you can also provide a configuration object with 
 `host`, `port`, `user` and `pass` properties as the first and only entry in an
 arguments array to the `connect` command, so multiple FTP sessions with
@@ -262,7 +261,7 @@ by the `connect` directive when FTP sessions are used.
 
 Arguments are always provided as an array of strings in the `args` property of
 the command JSON representation. For commands without arguments the property
-might be missing. Here are a few examples:
+can be left out. Here are a few examples:
 
 A command without parameters in a session context:
 ```javascript
@@ -295,8 +294,7 @@ Here is a list of all raw commands available:
 
 ### Compound commands
 
-In addition to raw commands the FTP client provides some compound which are
-required for more complex operations.
+In addition to raw commands the FTP client provides some compound commands which are required for more complex operations.
 
 #### ls
  
@@ -327,7 +325,7 @@ vertx.eventBus.send(<EB address>, command, function (reply) {
 #### list
 
 The `list` command also takes a directory name as an argument. In this
-case the reply hander is called with single multi-line string containing one
+case the reply hander is called with a single multi-line string containing one
 file entry per line. The JSON parsed reply might look something like this:
 
 ```javascript
@@ -467,11 +465,11 @@ Examples for usage as an event bus module can be found under
 ## Using the JavaScript Event Bus Wrapper
 
 The Vert.x module can generally be called via the event bus from verticles in
-any language. For JavaScript exists a small wrapper module which encapsulates
+any language. For JavaScript there is a small wrapper module which encapsulates
 the event bus messaging and works with promises from
 [when.js](https://github.com/cujojs/when) for a clean and intuitive
 programming style. Here is an example, where the FTP client first connects
-to the server, then creates a directory, changes the working directory, creaates
+to the server, then creates a directory, changes the working directory, creates
 a file and then disconnects. On top of that some extended features of when.js,
 like `otherwise` and `ensure`, allow for nice error handling:
 
@@ -542,7 +540,7 @@ otherwise(
 );
 ```
 
-In order to use the the JS wrapper the Vert.x module first has be be included
+In order to use the the JS wrapper the Vert.x module first has to be included
 in your `mod.json` description. The wrapper itself is a CommonJS module, which
 has to be included in your JavaScript by
 
@@ -560,7 +558,7 @@ var cl = new FtpEbCl(<EB address>);
 I.e. you may start your Vert.x FTP client verticle to listen on the event bus
 as described above. Then, in a different JavaScript verticle you can use the
 wrapper to call the client verticle without assembling event bus messages.
-Instead you can use a promised based API to to the work for you.
+Instead you can use a promised based API to do the work for you.
 
 ### Setting a Timeout
 
@@ -632,8 +630,8 @@ The original FTP client implementation is a port of the
 As such the Vert.x module can also be included to use the JavaScript FTP
 client directly as a CommonJS module.
 
-The following documentation is directly taken from
-[jsftp](https://github.com/sergi/jsftp), with small adjustments.
+The following documentation is taken directly from
+[jsftp](https://github.com/sergi/jsftp), with some small adjustments.
 
 ### Starting it up
 
@@ -734,7 +732,7 @@ the response code of the response and `text` is the response string itself.
 Authenticates the user with the given username and password. If null or empty
 values are passed for those, `auth` will use anonymous credentials. `callback`
 will be called with the response text in case of successful login or with an
-error as a first parameter.
+error as the first parameter.
 
 #### Ftp.ls(filePath, callback)
 Lists information about files or directories and yields an array of file objects
