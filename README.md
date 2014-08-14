@@ -48,7 +48,7 @@ tests will fail and the directory might be deleted.
 The testsuite can then be started by calling
 
 ```javascript
-vertx runmod mohlemeyer~ftpClient~{version} -conf {Path_to_module_configuration}
+vertx runmod mohlemeyer~vertxFtpClient~{version} -conf {Path_to_module_configuration}
 ```
 
 This might in turn install the QUnit/Sinon JavaScript testrunner for executing
